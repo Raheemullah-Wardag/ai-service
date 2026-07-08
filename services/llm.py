@@ -1,39 +1,47 @@
-import google.generativeai as genai
+from dotenv import load_dotenv
 import os
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+from google import genai
+from google.genai import types
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+load_dotenv()
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+
+def _build_contents(messages: list[dict]) -> list[dict] | str:
+    if not messages:
+        return ""
+
+    if len(messages) == 1:
+        return messages[-1]["content"]
+
+    contents = []
+    for message in messages[:-1]:
+        role = "user" if message["role"] == "user" else "model"
+        contents.append({"role": role, "parts": [message["content"]]})
+
+    return contents + [{"role": "user", "parts": [messages[-1]["content"]]}]
+
 
 def get_chat_response(messages: list[dict]) -> str:
-    history = [
-        {
-            "role": m["role"],
-            "parts": [m["content"]]
-        }
-        for m in messages[:-1]
-    ]
-    
-    chat = model.start_chat(history=history)
-    response = chat.send_message(messages[-1]["content"])
-    return response.text
+    contents = _build_contents(messages)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(temperature=0.7),
+    )
+    return response.text or ""
+
 
 async def stream_chat_response(messages: list[dict]):
-    role_map = {"assistant": "model", "user": "user"}
-    history = [
-    {
-        "role": role_map.get(m["role"], m["role"]),
-        "parts": [m["content"]]
-    }
-    for m in messages[:-1]
-]
-    
-    chat = model.start_chat(history=history)
-    response = chat.send_message(
-        messages[-1]["content"],
-        stream=True
+    contents = _build_contents(messages)
+    response = client.models.generate_content_stream(
+        model="gemini-2.5-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(temperature=0.7),
     )
-    
+
     for chunk in response:
-        if chunk.text:
+        if getattr(chunk, "text", None):
             yield chunk.text
