@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os
 
-from google import genai
+import google.genai as genai
 from google.genai import types
 
 load_dotenv()
