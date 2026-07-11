@@ -7,6 +7,9 @@ from cache.redis_client import redis_client
 from services.llm import stream_chat_response, get_chat_response
 from pydantic import BaseModel
 import json
+from main import limiter
+from fastapi import Request
+
 
 router = APIRouter()
 
@@ -18,9 +21,9 @@ class ChatRequest(BaseModel):
     conversation_id: int
     user_id: int
     message: str
-
 @router.post("/stream")
-async def chat_stream(body: ChatRequest, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def chat_stream(request: Request,body: ChatRequest, db: Session = Depends(get_db)):
     cache_key = f"ai_chat:{body.conversation_id}"
     
     # 1. Try Redis cache first
@@ -86,7 +89,8 @@ async def chat_stream(body: ChatRequest, db: Session = Depends(get_db)):
     )
 
 @router.post("/")
-async def chat(body: ChatRequest, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def chat(request: Request,body: ChatRequest, db: Session = Depends(get_db)):
     messages = [{"role": body.role if hasattr(body, 'role') else "user", 
                  "content": body.message}]
     response = get_chat_response(messages)

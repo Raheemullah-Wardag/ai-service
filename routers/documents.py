@@ -15,7 +15,9 @@ router = APIRouter()
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
 @router.post("/upload")
+@limiter.limit("20/minute")
 async def upload_document(
+    request: Request, 
     user_id: int,
     conversation_id: int,
     file: UploadFile = File(...),
@@ -91,7 +93,8 @@ class RAGChatRequest(BaseModel):
     message: str
 
 @router.post("/chat")
-async def rag_chat(body: RAGChatRequest, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def rag_chat(request: Request, ,body: RAGChatRequest, db: Session = Depends(get_db)):
     
     # 1. Retrieve relevant chunks using hybrid search
     loop = asyncio.get_running_loop()
