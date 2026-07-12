@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
-from routers import chat, documents
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from dependencies import limiter
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from routers import chat, documents
 
 load_dotenv()
 
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="AI Service", version="1.0.0")
 app.state.limiter = limiter

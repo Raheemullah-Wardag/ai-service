@@ -1,14 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from db.database import get_db
 from cache.redis_client import redis_client
 from services.llm import stream_chat_response, get_chat_response
+from dependencies import limiter
 from pydantic import BaseModel
 import json
-from main import limiter
-from fastapi import Request
 
 
 router = APIRouter()

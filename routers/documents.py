@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -9,6 +9,7 @@ from services.document_processor import process_document, validate_pdf
 from services.embeddings import get_batch_embeddings
 from services.retreivel import retrieve_chunks
 from services.llm import stream_chat_response
+from dependencies import limiter
 import asyncio
 import json
 router = APIRouter()
@@ -94,7 +95,7 @@ class RAGChatRequest(BaseModel):
 
 @router.post("/chat")
 @limiter.limit("20/minute")
-async def rag_chat(request: Request, ,body: RAGChatRequest, db: Session = Depends(get_db)):
+async def rag_chat(request: Request, body: RAGChatRequest, db: Session = Depends(get_db)):
     
     # 1. Retrieve relevant chunks using hybrid search
     loop = asyncio.get_running_loop()
